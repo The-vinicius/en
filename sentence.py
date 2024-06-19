@@ -14,8 +14,11 @@ from docx.shared import Inches
 
 # id do video
 id = sys.argv[1]
+title = sys.argv[2]
+
+
 # nome do arquivo
-file = sys.argv[2]
+file = 'phrase.docx'
 
 srt = YouTubeTranscriptApi.get_transcript(str(id), languages=['en'])
 
@@ -90,7 +93,9 @@ def salva_palavras(sentences, file):
         doc = Document(file)
     else:
         doc = Document()
-
+    
+    # add title(youtube title) for doc 
+    doc.add_heading(title, level=0)
     for sentence in sentences:
         doc.add_paragraph(sentence)
     

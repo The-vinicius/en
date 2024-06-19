@@ -41,7 +41,8 @@ lemmatizer = WordNetLemmatizer()
 def preprocess_text(text):
     tokens = word_tokenize(text.lower())
     tokens = [lemmatizer.lemmatize(token) for token in tokens if token.isalnum()]
-    tokens = [token for token in tokens if token not in stop_words]
+    # remove stop words for get more
+    # tokens = [token for token in tokens if token not in stop_words]
     return ' '.join(tokens)
 
 
@@ -56,6 +57,8 @@ verbs = []
 adjectives = []
 pronouns = []
 noun = []
+modal = []
+conjuction = []
 
 # Filtrar por partes do discurso desejadas (verbos, adjetivos, pronomes)
 for token, pos in pos_tags:
@@ -67,7 +70,10 @@ for token, pos in pos_tags:
         pronouns.append(token)
     elif pos.startswith('NN'):
         noun.append(token)
-
+    elif pos.startswith('CC'):
+        conjuction.append(token)
+    elif pos.startswith('MD'):
+        modal.append(token)
 
 
 def separa(dados, n):
@@ -83,13 +89,11 @@ def separa(dados, n):
     return table
 
 
-
-
 def salva_palavras(palavras, file):
     n = math.floor(math.sqrt(len(set(palavras))))
 
-    if n > 8:
-        n = 8
+    if n > 4:
+        n = 4
 
     data = separa(set(palavras), n)
 
@@ -97,6 +101,8 @@ def salva_palavras(palavras, file):
         doc = Document(file)
     else:
         doc = Document()
+
+    doc.add_heading(file.split('.')[0], level=0)
     # Adicionar uma tabela ao documento
     table = doc.add_table(rows=1, cols=n)
     for row_data in data:
@@ -106,10 +112,12 @@ def salva_palavras(palavras, file):
     doc.save(file)
 
 
+def save_all(grammar, files):
+    grammar_f = zip(grammar, files)
+    for palavras, file in grammar_f:
+        salva_palavras(palavras, file)
 
-salva_palavras(verbs, 'verbs.docx')
-salva_palavras(adjectives, 'adjectives.docx')
-salva_palavras(pronouns, 'pronouns.docx')
-salva_palavras(noun, 'noun.docx')
+grammar = [verbs, adjectives, pronouns, noun, modal, conjuction]
+files = ['verbs.docx', 'adjectives.docx', 'pronouns.docx', 'noun.docx', 'modal.docx', 'conjuction.docx']
 
-
+save_all(grammar, files)

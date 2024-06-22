@@ -3,11 +3,10 @@ import sys
 from collections import Counter
 import re
 # from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk import pos_tag, word_tokenize, download
+import spacy
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.probability import FreqDist
-from nltk.tokenize import sent_tokenize
 from docx import Document
 from docx.shared import Inches
 import os
@@ -15,7 +14,12 @@ import math
 
 # id do video
 id = sys.argv[1]
+# title in docx
+title = sys.argv[2]
 
+
+# Carregar o modelo de idioma em inglês
+nlp = spacy.load('en_core_web_sm')
 
 srt = YouTubeTranscriptApi.get_transcript(str(id), languages=['en'])
 
@@ -36,44 +40,17 @@ texto = remove_special_characters(texto)
 
 # Pré-processamento do texto
 stop_words = set(stopwords.words('english'))
-lemmatizer = WordNetLemmatizer()
-
-def preprocess_text(text):
-    tokens = word_tokenize(text.lower())
-    tokens = [lemmatizer.lemmatize(token) for token in tokens if token.isalnum()]
-    # remove stop words for get more
-    # tokens = [token for token in tokens if token not in stop_words]
-    return ' '.join(tokens)
-
-
-preprocessed_text = preprocess_text(texto)
-
-# Tokenização e extração de partes do discurso
-pos_tags = pos_tag(word_tokenize(preprocessed_text))
+lemmatizer = WordNetLemmatizer() 
+doc = nlp(texto)
 
 
 # Inicializar listas para armazenar verbos, adjetivos e pronomes
-verbs = []
-adjectives = []
-pronouns = []
-noun = []
-modal = []
-conjuction = []
+verbs = [lemmatizer.lemmatize(token.text) for token in doc if token.pos_ == 'VERB']
+adjectives = [lemmatizer.lemmatize(token.text) for token in doc if token.pos_ == 'ADJ']
+pronouns = [lemmatizer.lemmatize(token.text) for token in doc if token.pos_ == 'PRON']
+noun = [lemmatizer.lemmatize(token.text) for token in doc if token.pos_ == 'NOUN']
+conjuction = [lemmatizer.lemmatize(token.text) for token in doc if token.pos_ == 'CONJ']
 
-# Filtrar por partes do discurso desejadas (verbos, adjetivos, pronomes)
-for token, pos in pos_tags:
-    if pos.startswith('VB'):
-        verbs.append(token)
-    elif pos.startswith('JJ'):
-        adjectives.append(token)
-    elif pos.startswith('PRP'):
-        pronouns.append(token)
-    elif pos.startswith('NN'):
-        noun.append(token)
-    elif pos.startswith('CC'):
-        conjuction.append(token)
-    elif pos.startswith('MD'):
-        modal.append(token)
 
 
 def separa(dados, n):
@@ -102,7 +79,7 @@ def salva_palavras(palavras, file):
     else:
         doc = Document()
 
-    doc.add_heading(file.split('.')[0], level=0)
+    doc.add_heading(title, level=0)
     # Adicionar uma tabela ao documento
     table = doc.add_table(rows=1, cols=n)
     for row_data in data:
@@ -117,7 +94,7 @@ def save_all(grammar, files):
     for palavras, file in grammar_f:
         salva_palavras(palavras, file)
 
-grammar = [verbs, adjectives, pronouns, noun, modal, conjuction]
-files = ['verbs.docx', 'adjectives.docx', 'pronouns.docx', 'noun.docx', 'modal.docx', 'conjuction.docx']
+grammar = [verbs, adjectives, pronouns, noun, conjuction]
+files = ['verbs.docx', 'adjectives.docx', 'pronouns.docx', 'noun.docx', 'conjuction.docx']
 
 save_all(grammar, files)

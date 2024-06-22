@@ -2,6 +2,7 @@ import nltk
 import sys
 import re
 import os
+import spacy
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.cluster.util import cosine_distance
 from nltk.corpus import stopwords
@@ -12,9 +13,12 @@ from docx import Document
 from docx.shared import Inches
 
 
-# id do video
 id = sys.argv[1]
 title = sys.argv[2]
+
+
+# Carregar o modelo de idioma em inglês
+nlp = spacy.load('en_core_web_sm')
 
 
 # nome do arquivo
@@ -73,6 +77,9 @@ def build_similarity_matrix(sentences, stop_words):
 
 
 def textrank(sentences, num_sentences=2):
+    if num_sentences > len(sentences):
+        num_sentences = len(sentences)
+
     stop_words = set(stopwords.words('english'))
     sentence_similarity_matrix = build_similarity_matrix(sentences, stop_words)
     
@@ -82,6 +89,7 @@ def textrank(sentences, num_sentences=2):
     ranked_sentences = sorted(((scores[i], s) for i, s in enumerate(sentences)), reverse=True)
     
     top_sentences = []
+    breakpoint()
     for i in range(num_sentences):
         top_sentences.append(ranked_sentences[i][1])
     
@@ -101,9 +109,12 @@ def salva_palavras(sentences, file):
     
     doc.save(file)
 
-sentencas = sent_tokenize(texto)
-palavras = [word_tokenize(sent) for sent in sentencas]
 
+# Processar o texto com o modelo carregado
+doc = nlp(texto)
+
+# Extrair as sentenças do texto
+sentencas = [sent.text for sent in doc.sents]
 sentencas_importantes = textrank(sentencas, num_sentences=10)
 
 

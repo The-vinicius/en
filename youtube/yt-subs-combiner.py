@@ -9,6 +9,7 @@ from itertools import zip_longest
 from datetime import datetime, timedelta
 import subprocess
 from webvtt import WebVTT
+from combiner import combine_subtitles_vtt
 
 def parse_vtt_to_segments(vtt_path):
     """
@@ -180,49 +181,6 @@ def parse_srt(content: str):
         blocks.append({'index': idx, 'start': start, 'end': end, 'text': text})
     return blocks
 
-def combine_subtitles(primary_path, secondary_path, output_path):
-    # Read files with fallback encoding
-    def read_file(path):
-        for enc in ('utf-8', 'latin-1'):
-            try:
-                return open(path, encoding=enc).read()
-            except:
-                continue
-        raise IOError(f"Cannot read {path}")
-
-    prim = parse_srt(read_file(primary_path))
-    sec = parse_srt(read_file(secondary_path))
-
-    combined = []
-    for idx, (b1, b2) in enumerate(zip_longest(prim, sec), start=1):
-        # Determine start/end times
-        if b1 and b2:
-            start = b1['start']
-            end1 = datetime.strptime(b1['end'], '%H:%M:%S,%f')
-            end2 = datetime.strptime(b2['end'], '%H:%M:%S,%f')
-            end = max(end1, end2).strftime('%H:%M:%S,%f')[:-3]
-        elif b1:
-            start, end = b1['start'], b1['end']
-        else:
-            start, end = b2['start'], b2['end']
-        # Combine texts
-        text1 = b1['text'] if b1 else ''
-        text2 = b2['text'] if b2 else ''
-        combined.append({'index': idx, 'start': start, 'end': end, 'text1': text1, 'text2': text2})
-
-    # Write combined file
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for blk in combined:
-            f.write(f"{blk['index']}\n")
-            f.write(f"{blk['start']} --> {blk['end']}\n")
-            if blk['text1']:
-                f.write(blk['text1'] + "\n")
-            if blk['text2']:
-                f.write(blk['text2'] + "\n")
-            f.write("\n")
-    # # Read and print result
-    # with open(output_path, 'r', encoding='utf-8') as f:
-    #     print(f.read())
 
 def main():
     parser = argparse.ArgumentParser(
@@ -255,7 +213,7 @@ def main():
     combined_path = os.path.join(args.output, f"{video_id}.combined.srt")
     
     # Combina as legendas
-    combine_subtitles(primary_path, secondary_path, combined_path)
+    combine_subtitles_vtt(primary_path, secondary_path, combined_path)
     
     print("\n✅ Processo concluído com sucesso!")
     print(f"Legenda combinada salva em: {combined_path}")
